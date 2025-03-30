@@ -10,9 +10,9 @@ A simple Go proxy for GitHub API, but MUCH lighter. Ported & modified from [huns
 
 ```bash
 # 直接运行，只允许代理 GitHub 链接
-docker run -d -p 80:80 --name gh-proxy-go anotia/gh-proxy-go
+docker run -d -p 80:80 --name gh-proxy-go ghcr.io/lwshen/gh-proxy-go
 # 允许代理任意链接
-docker run -d -p 80:80 --name gh-proxy-go anotia/gh-proxy-go --allow-any-url
+docker run -d -p 80:80 --name gh-proxy-go ghcr.io/lwshen/gh-proxy-go --allow-any-url
 ```
 
 ### 命令行运行
