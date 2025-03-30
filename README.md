@@ -4,8 +4,6 @@
 
 A simple Go proxy for GitHub API, but MUCH lighter. Ported & modified from [hunshcn/gh-proxy](https://github.com/hunshcn/gh-proxy).
 
-已知问题：不支持 Git clone。制作本项目主要是为了节约硬盘空间，本人未用到其 git clone 代理功能，因此没有实现（或者说修复），欢迎 PR。
-
 ## 用法
 
 ### Docker
@@ -31,3 +29,30 @@ docker run -d -p 80:80 --name gh-proxy-go anotia/gh-proxy-go --allow-any-url
 # 允许代理任意链接
 ./gh-proxy-go --allow-any-url
 ```
+
+### Git Clone 代理 / Git Clone Proxy
+
+配置 Git 使用此代理时，需要将 URL 替换为您的代理 URL，例如：
+
+When configuring Git to use this proxy, you need to replace the URL with your proxy URL, for example:
+
+```bash
+# 替换前 / Before replacement
+git clone https://github.com/username/repo.git
+
+# 替换后 (假设代理部署在 https://your-proxy-domain.com)
+# After replacement (assuming the proxy is deployed at https://your-proxy-domain.com)
+git clone https://your-proxy-domain.com/github.com/username/repo.git
+```
+
+您也可以配置 Git 全局代理：
+
+You can also configure a global Git proxy:
+
+```bash
+git config --global url."https://your-proxy-domain.com/https://github.com/".insteadOf "https://github.com/"
+```
+
+这样就可以正常使用 `git clone https://github.com/username/repo.git` 命令，Git 会自动将请求通过您的代理发送。
+
+This way you can use the normal `git clone https://github.com/username/repo.git` command, and Git will automatically send requests through your proxy.

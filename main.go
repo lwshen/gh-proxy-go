@@ -28,6 +28,7 @@ var (
 	exp5        = regexp.MustCompile(`^(?:https?://)?gist\.(?:githubusercontent|github)\.com/(?P<author>.+?)/.+?/.+$`)
 	exp6        = regexp.MustCompile(`(\.com/.*?/.+?)/(.+?/)`)
 	allowAnyUrl bool
+	chunkSize   = 32 * 1024
 )
 
 func main() {
@@ -137,7 +138,10 @@ func handler(c *gin.Context, u string) {
 
 func proxy(c *gin.Context, u string) {
 	client := &http.Client{}
-	req, err := http.NewRequest(c.Request.Method, u, nil)
+	if len(c.Request.URL.RawQuery) > 0 {
+		u = u + "?" + c.Request.URL.RawQuery
+	}
+	req, err := http.NewRequest(c.Request.Method, u, c.Request.Body)
 	if err != nil {
 		log.Println("Failed to create request: ", err)
 		c.String(http.StatusInternalServerError, "Server error: %v", err)
@@ -145,6 +149,7 @@ func proxy(c *gin.Context, u string) {
 	}
 
 	copyHeader(c.Request.Header, &req.Header)
+
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Println("Failed to send request: ", err)
@@ -158,10 +163,35 @@ func proxy(c *gin.Context, u string) {
 		return
 	}
 
-	header := c.Writer.Header()
-	copyHeader(resp.Header, &header)
+	// Copy response headers
+	for key, values := range resp.Header {
+		for _, value := range values {
+			c.Header(key, value)
+		}
+	}
+
+	// Set status code
 	c.Status(resp.StatusCode)
-	io.Copy(c.Writer, resp.Body)
+
+	// Stream the response body
+	buf := make([]byte, chunkSize)
+	for {
+		n, err := resp.Body.Read(buf)
+		if n > 0 {
+			_, writeErr := c.Writer.Write(buf[:n])
+			if writeErr != nil {
+				log.Printf("Error writing response: %v", writeErr)
+				return
+			}
+			c.Writer.Flush()
+		}
+		if err != nil {
+			if err != io.EOF {
+				log.Printf("Error reading response: %v", err)
+			}
+			break
+		}
+	}
 }
 
 func copyHeader(src http.Header, dest *http.Header) {
